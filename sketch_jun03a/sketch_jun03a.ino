@@ -4,13 +4,10 @@ MKRIoTCarrier carrier;
 void setup()
 {
   CARRIER_CASE = true;
+  carrier.begin();
   carrier.display.setTextSize(2);
   carrier.display.setCursor(0, 120);
   carrier.leds.setBrightness(64);
-  
-  uint32_t green = carrier.leds.Color(0, 255, 0);
-  carrier.leds.fill(green, 0, 5);
-  carrier.leds.show();
 }
 
 // the loop function runs over and over again forever
