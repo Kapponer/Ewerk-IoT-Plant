@@ -61,14 +61,14 @@ void ButtonPressedDefault()
 
 void ShowGreenLight()
 {
-  uint32_t green = carrier.leds.Color(0, 255, 0);
+  uint32_t green = carrier.leds.Color(255, 0, 0);
   carrier.leds.fill(green, 0, 5);
   carrier.leds.show();
 }
 
 void ShowRedLight()
 {
-  uint32_t red = carrier.leds.Color(255, 0, 0);
+  uint32_t red = carrier.leds.Color(0, 255, 0);
   carrier.leds.fill(red, 0, 5);
   carrier.leds.show();
 }
