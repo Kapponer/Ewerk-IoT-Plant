@@ -30,8 +30,15 @@ void loop()
   String milliseconds = String(millis());
   String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
   csvSensorData.println(logData);
+  ResetDisplay();
   carrier.display.print(logData);
   delay(10000);
+}
+
+void ResetDisplay()
+{
+  carrier.display.fillScreen(000000);
+  carrier.display.setCursor(0, 120);
 }
 
 void ShowGreenLight()
