@@ -1,62 +1,37 @@
 #include <Arduino_MKRIoTCarrier.h>
-MKRIoTCarrier carrier;
+#include "SensorsData.h"
 
+MKRIoTCarrier carrier;
+File csvSensorData;
+
+// is just called once at the start
 void setup()
 {
+  // if the carrier is in a case or not
   CARRIER_CASE = true;
+  // must be called to get all sensors and buttons on the carrier
   carrier.begin();
-  carrier.display.setTextSize(2);
+  carrier.display.setTextSize(1);
   carrier.display.setCursor(0, 120);
   carrier.leds.setBrightness(64);
+
+  csvSensorData = SD.open("sensorsData.csv", FILE_WRITE);
+  csvSensorData.println("Millis, temperature, humidity, lightIntensity");
 }
 
 // the loop function runs over and over again forever
 void loop()
 {
-  String displayText;
-  bool buttonPressed = false;
-  // updates buttons status
-  carrier.Buttons.update();
-  if (carrier.Buttons.onTouchDown(TOUCH0))
-  {
-    buttonPressed = true;
-    ShowGreenLight();
-    displayText = "Gruenes Licht";
-  }
-  else if (carrier.Buttons.onTouchDown(TOUCH1))
-  {
-    buttonPressed = true;
-    ShowRedLight();
-    displayText = "Rotes Licht";
-  }
-  else if (carrier.Buttons.onTouchDown(TOUCH2))
-  {
-    buttonPressed = true;
-    displayText = String("Luftfeuchtigkeit: " + String(GetCurrentHumidity()));
-  }
-  else if (carrier.Buttons.onTouchDown(TOUCH3))
-  {
-    buttonPressed = true;
-    displayText = String("Druck: " + String(GetCurrentPressure()));
-  }
-  else if (carrier.Buttons.onTouchDown(TOUCH4))
-  {
-    buttonPressed = true;
-    displayText = String("Temp.: " + String(GetCurrentTemperature()));
-  }
+  SensorsData sensorsData;
+  sensorsData.Temperature = GetCurrentTemperature();
+  sensorsData.Humidity = GetCurrentHumidity();
+  sensorsData.LightIntensity = GetCurrentLightIntensity();
 
-  if (buttonPressed)
-  {
-    ButtonPressedDefault();
-    //reset text on display
-    carrier.display.fillScreen(000000);
-    carrier.display.setCursor(0, 120);
-    carrier.display.print(displayText);
-  }
-}
-
-void ButtonPressedDefault()
-{
+  String milliseconds = String(millis());
+  String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
+  csvSensorData.println(logData);
+  carrier.display.print(logData);
+  delay(10000);
 }
 
 void ShowGreenLight()
@@ -86,4 +61,15 @@ float GetCurrentHumidity()
 float GetCurrentPressure()
 {
   return carrier.Pressure.readPressure();
+}
+
+int GetCurrentLightIntensity()
+{
+  if(carrier.Light.colorAvailable())
+  {
+    int r,g,b,lightIntensity;
+    carrier.Light.readColor(r,g,b,lightIntensity);
+    return lightIntensity;
+  }
+  return 0;
 }
