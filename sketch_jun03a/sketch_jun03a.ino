@@ -14,7 +14,8 @@ void setup()
   carrier.display.setTextSize(1);
   carrier.display.setCursor(0, 120);
   carrier.leds.setBrightness(64);
-
+  
+  CheckIfSdCardIsConnected();
   csvSensorData = SD.open("sensorsData.csv", FILE_WRITE);
   csvSensorData.println("Millis, temperature, humidity, lightIntensity");
 }
@@ -30,9 +31,33 @@ void loop()
   String milliseconds = String(millis());
   String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
   csvSensorData.println(logData);
-  ResetDisplay();
-  carrier.display.print(logData);
+  csvSensorData.close();
+  PrintOnDisplay(logData);
   delay(10000);
+}
+
+void CheckIfSdCardIsConnected()
+{
+  const int chipSelect = SD_CS;
+  Sd2Card card;
+  Serial.print("\nInitializing SD card...");
+  // we'll use the initialization code from the utility libraries
+  // since we're just testing if the card is working!
+  if (!card.init(SPI_HALF_SPEED, chipSelect)) {
+    Serial.println("initialization failed. Things to check:");
+    Serial.println("* is a card inserted?");
+    Serial.println("* is your wiring correct?");
+    Serial.println("* did you change the chipSelect pin to match your shield or module?");
+    while (1);
+  } else {
+    Serial.println("Wiring is correct and a card is present.");
+  }
+}
+
+void PrintOnDisplay(String text)
+{
+  ResetDisplay();
+  carrier.display.print(text);
 }
 
 void ResetDisplay()
@@ -72,10 +97,10 @@ float GetCurrentPressure()
 
 int GetCurrentLightIntensity()
 {
-  if(carrier.Light.colorAvailable())
+  if (carrier.Light.colorAvailable())
   {
-    int r,g,b,lightIntensity;
-    carrier.Light.readColor(r,g,b,lightIntensity);
+    int r, g, b, lightIntensity;
+    carrier.Light.readColor(r, g, b, lightIntensity);
     return lightIntensity;
   }
   return 0;
