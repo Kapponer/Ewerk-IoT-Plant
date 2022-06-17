@@ -17,7 +17,7 @@ void setup()
   
   CheckIfSdCardIsConnected();
   csvSensorData = SD.open("sensorsData.csv", FILE_WRITE);
-  csvSensorData.println("Millis, temperature, humidity, lightIntensity");
+  csvSensorData.println("millis, temperature, humidity, lightIntensity");
 }
 
 // the loop function runs over and over again forever
