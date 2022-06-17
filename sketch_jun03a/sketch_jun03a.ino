@@ -3,6 +3,7 @@
 
 MKRIoTCarrier carrier;
 File csvSensorData;
+String filename = "data.csv";
 
 // is just called once at the start
 void setup()
@@ -16,24 +17,46 @@ void setup()
   carrier.leds.setBrightness(64);
   
   CheckIfSdCardIsConnected();
-  csvSensorData = SD.open("sensorsData.csv", FILE_WRITE);
+  if (LogIfFileExists())
+  {
+    SD.remove(filename);
+  }
+  // name of the file doesn't be longer then 12 chars.
+  csvSensorData = SD.open(filename, FILE_WRITE);
   csvSensorData.println("millis, temperature, humidity, lightIntensity");
 }
 
 // the loop function runs over and over again forever
 void loop()
 {
-  SensorsData sensorsData;
-  sensorsData.Temperature = GetCurrentTemperature();
-  sensorsData.Humidity = GetCurrentHumidity();
-  sensorsData.LightIntensity = GetCurrentLightIntensity();
+  if (csvSensorData)
+  {
+    SensorsData sensorsData;
+    sensorsData.Temperature = GetCurrentTemperature();
+    sensorsData.Humidity = GetCurrentHumidity();
+    sensorsData.LightIntensity = GetCurrentLightIntensity();
+  
+    String milliseconds = String(millis());
+    String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
+    csvSensorData.println(logData);
+    csvSensorData.flush();
+    PrintOnDisplay(logData);
+    Serial.println(logData);
+    delay(1000);
+  }
+}
 
-  String milliseconds = String(millis());
-  String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
-  csvSensorData.println(logData);
-  csvSensorData.close();
-  PrintOnDisplay(logData);
-  delay(10000);
+bool LogIfFileExists()
+{
+  if (SD.exists(filename)) 
+  {
+    Serial.println("data.csv exists.");
+    return true;
+  } else
+  {
+    Serial.println("data.csv doesn't exist.");
+    return false;
+  }
 }
 
 void CheckIfSdCardIsConnected()
