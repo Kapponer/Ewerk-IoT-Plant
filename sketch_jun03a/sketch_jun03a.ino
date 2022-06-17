@@ -3,6 +3,8 @@
 
 MKRIoTCarrier carrier;
 File csvSensorData;
+
+// name of the file doesn't be longer then 12 chars.
 String filename = "data.csv";
 
 // is just called once at the start
@@ -12,16 +14,13 @@ void setup()
   CARRIER_CASE = true;
   // must be called to get all sensors and buttons on the carrier
   carrier.begin();
-  carrier.display.setTextSize(1);
-  carrier.display.setCursor(0, 120);
-  carrier.leds.setBrightness(64);
-  
+  SetGlobalCarrierSettings();
+
   CheckIfSdCardIsConnected();
   if (LogIfFileExists())
   {
     SD.remove(filename);
   }
-  // name of the file doesn't be longer then 12 chars.
   csvSensorData = SD.open(filename, FILE_WRITE);
   csvSensorData.println("millis, temperature, humidity, lightIntensity");
 }
@@ -35,20 +34,32 @@ void loop()
     sensorsData.Temperature = GetCurrentTemperature();
     sensorsData.Humidity = GetCurrentHumidity();
     sensorsData.LightIntensity = GetCurrentLightIntensity();
-  
-    String milliseconds = String(millis());
-    String logData = String(milliseconds + ", " + sensorsData.ToCsvString());
-    csvSensorData.println(logData);
-    csvSensorData.flush();
+
+    String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
+    SaveDataOnSdCard(sensorData);
+
     PrintOnDisplay(logData);
     Serial.println(logData);
-    delay(1000);
+    delay(10000);
   }
+}
+
+void SetGlobalCarrierSettings()
+{
+  carrier.display.setTextSize(1);
+  carrier.display.setCursor(0, 120);
+  carrier.leds.setBrightness(64);
+}
+
+void SaveDataOnSdCard(String data)
+{
+  csvSensorData.println(data);
+  csvSensorData.flush();
 }
 
 bool LogIfFileExists()
 {
-  if (SD.exists(filename)) 
+  if (SD.exists(filename))
   {
     Serial.println("data.csv exists.");
     return true;
