@@ -38,9 +38,10 @@ void loop()
     String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
     SaveDataOnSdCard(sensorData);
 
-    PrintOnDisplay(logData);
-    Serial.println(logData);
-    delay(10000);
+    PrintOnDisplay(sensorData);
+    Serial.println(sensorData);
+    // 300000 = 5min
+    delay(600000);
   }
 }
 
