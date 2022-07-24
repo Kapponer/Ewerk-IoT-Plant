@@ -12,7 +12,7 @@ class SensorsData {
   public:
     float Temperature;
     float Humidity;
-    int LightIntensity;
+    unsigned int LightIntensity;
     String ToCsvString();
 };
 

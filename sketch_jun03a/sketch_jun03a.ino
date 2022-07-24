@@ -6,6 +6,11 @@ File csvSensorData;
 
 // name of the file doesn't be longer then 12 chars.
 String filename = "data.csv";
+bool LoggingIsOn = true;
+int touchNumber;
+unsigned long timeButtonPressed;
+SensorsData sensorDataSum;
+int numberOfMeasurements = 0;
 
 // is just called once at the start
 void setup()
@@ -15,12 +20,11 @@ void setup()
   // must be called to get all sensors and buttons on the carrier
   carrier.begin();
   SetGlobalCarrierSettings();
-
-  CheckIfSdCardIsConnected();
-  if (LogIfFileExists())
   {
     SD.remove(filename);
   }
+
+  CheckIfSdCardIsConnected();
   csvSensorData = SD.open(filename, FILE_WRITE);
   csvSensorData.println("millis, temperature, humidity, lightIntensity");
 }
@@ -28,21 +32,105 @@ void setup()
 // the loop function runs over and over again forever
 void loop()
 {
-  if (csvSensorData)
+  // updates buttons status
+  carrier.Buttons.update();
+  
+  if (LogIfFileExists())
   {
-    SensorsData sensorsData;
-    sensorsData.Temperature = GetCurrentTemperature();
-    sensorsData.Humidity = GetCurrentHumidity();
-    sensorsData.LightIntensity = GetCurrentLightIntensity();
+    if (carrier.Buttons.onTouchDown(TOUCH0))
+    {
+      Serial.print("Button 0 pressed down");
+      touchNumber = 0;
+      timeButtonPressed = millis();
+      ToggleLogging(0);
+    }
 
-    String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
-    SaveDataOnSdCard(sensorData);
+    if (carrier.Buttons.onTouchDown(TOUCH2))
+    {
+      Serial.print("Button 2 pressed down");
+      touchNumber = 2;
+      timeButtonPressed = millis();
+      PlantAnalyzer(2);
+    }
 
-    PrintOnDisplay(sensorData);
-    Serial.println(sensorData);
-    // 300000 = 5min
-    delay(600000);
+    ResetTouchNumberAfter(5000);
+
+    // toggle write data
+    if (LoggingIsOn)
+    {
+      WriteSensorData();
+    }
   }
+}
+
+void ToggleLogging(int inputNumber)
+{
+  String loggingText = "enable";
+  if (LoggingIsOn)
+  {
+    loggingText = "disable";
+  }
+  
+  if (touchNumber == inputNumber)
+  {
+    if (LoggingIsOn)
+    {
+      LoggingIsOn = false;
+    }
+    else
+    {
+      LoggingIsOn = true;
+    }
+    String DisplayText = String("Logging is" + loggingText + "!");
+    PrintOnDisplay(DisplayText);
+  }
+  else
+  {
+    String DisplayText = String("Press again to " + loggingText + " logging!");
+    PrintOnDisplay(DisplayText);
+  }
+}
+
+void PlantAnalyzer(int inputNumber)
+{
+  // Durchschnitt aus den Kategorien bilden
+  float averageTemperature = sensorDataSum.Temperature / numberOfMeasurements;
+  float averageHumidity = sensorDataSum.Humidity / numberOfMeasurements;
+  float averageLightIntensity = sensorDataSum.LightIntensity / numberOfMeasurements;
+  // Anhand von Grenzen festlegen, welche Pflanze gewählt werden sollte
+  PrintOnDisplay(String("Temp~: " + String(averageTemperature) + "°C; Hum~: " + String(averageHumidity) + "%; Light~: " + String(averageLightIntensity)));
+}
+
+void ResetTouchNumberAfter(unsigned long resetTime)
+{
+  unsigned long currentTime = millis();
+  if (currentTime == timeButtonPressed + resetTime)
+  {
+    touchNumber = -1;
+  }
+}
+
+void WriteSensorData()
+{
+  SensorsData sensorsData;
+  sensorsData.Temperature = GetCurrentTemperature();
+  sensorsData.Humidity = GetCurrentHumidity();
+  sensorsData.LightIntensity = GetCurrentLightIntensity();
+
+  sensorDataSum.Temperature = sensorDataSum.Temperature + sensorsData.Temperature;
+  sensorDataSum.Humidity = sensorDataSum.Humidity + sensorsData.Humidity;
+  sensorDataSum.LightIntensity = sensorDataSum.LightIntensity + sensorsData.LightIntensity;
+  numberOfMeasurements++;
+
+  String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
+  SaveDataOnSdCard(sensorData);
+
+  PrintOnDisplay(sensorData);
+  Serial.println(sensorData);
+  // 300000 = 5min
+  //delay(600000);
+  // 120000 = 2min
+  delay(120000);
 }
 
 void SetGlobalCarrierSettings()
@@ -130,7 +218,7 @@ float GetCurrentPressure()
   return carrier.Pressure.readPressure();
 }
 
-int GetCurrentLightIntensity()
+unsigned int GetCurrentLightIntensity()
 {
   if (carrier.Light.colorAvailable())
   {
@@ -138,5 +226,7 @@ int GetCurrentLightIntensity()
     carrier.Light.readColor(r, g, b, lightIntensity);
     return lightIntensity;
   }
-  return 0;
+
+  // hier besteht Loopgefahr
+  return GetCurrentLightIntensity();
 }
