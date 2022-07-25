@@ -9,8 +9,9 @@ String filename = "data.csv";
 bool LoggingIsOn = true;
 int touchNumber;
 unsigned long timeButtonPressed;
+unsigned long timeLastMeasurement;
 SensorsData sensorDataSum;
-int numberOfMeasurements = 0;
+int numberOfMeasurements;
 
 // is just called once at the start
 void setup()
@@ -39,7 +40,7 @@ void loop()
   {
     if (carrier.Buttons.onTouchDown(TOUCH0))
     {
-      Serial.print("Button 0 pressed down");
+      Serial.println("Button 0 pressed down");
       touchNumber = 0;
       timeButtonPressed = millis();
       ToggleLogging(0);
@@ -47,7 +48,7 @@ void loop()
 
     if (carrier.Buttons.onTouchDown(TOUCH2))
     {
-      Serial.print("Button 2 pressed down");
+      Serial.println("Button 2 pressed down");
       touchNumber = 2;
       timeButtonPressed = millis();
       PlantAnalyzer(2);
@@ -58,7 +59,10 @@ void loop()
     // toggle write data
     if (LoggingIsOn)
     {
-      WriteSensorData();
+        
+      // 300000 = 5min
+      // 120000 = 2min
+      WriteSensorData(120000);
     }
   }
 }
@@ -81,7 +85,7 @@ void ToggleLogging(int inputNumber)
     {
       LoggingIsOn = true;
     }
-    String DisplayText = String("Logging is" + loggingText + "!");
+    String DisplayText = String("Logging is " + loggingText + "!");
     PrintOnDisplay(DisplayText);
   }
   else
@@ -98,39 +102,43 @@ void PlantAnalyzer(int inputNumber)
   float averageHumidity = sensorDataSum.Humidity / numberOfMeasurements;
   float averageLightIntensity = sensorDataSum.LightIntensity / numberOfMeasurements;
   // Anhand von Grenzen festlegen, welche Pflanze gewählt werden sollte
-  PrintOnDisplay(String("Temp~: " + String(averageTemperature) + "°C; Hum~: " + String(averageHumidity) + "%; Light~: " + String(averageLightIntensity)));
+  String text = String("Temp~: " + String(averageTemperature) + "°C; Hum~: " + String(averageHumidity) + "%; Light~: " + String(averageLightIntensity));
+  PrintOnDisplay(text);
+  Serial.println(text);
 }
 
 void ResetTouchNumberAfter(unsigned long resetTime)
 {
   unsigned long currentTime = millis();
-  if (currentTime == timeButtonPressed + resetTime)
+  if (currentTime >= timeButtonPressed + resetTime)
   {
     touchNumber = -1;
   }
 }
 
-void WriteSensorData()
+void WriteSensorData(unsigned long delayTime)
 {
-  SensorsData sensorsData;
-  sensorsData.Temperature = GetCurrentTemperature();
-  sensorsData.Humidity = GetCurrentHumidity();
-  sensorsData.LightIntensity = GetCurrentLightIntensity();
-
-  sensorDataSum.Temperature = sensorDataSum.Temperature + sensorsData.Temperature;
-  sensorDataSum.Humidity = sensorDataSum.Humidity + sensorsData.Humidity;
-  sensorDataSum.LightIntensity = sensorDataSum.LightIntensity + sensorsData.LightIntensity;
-  numberOfMeasurements++;
-
-  String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
-  SaveDataOnSdCard(sensorData);
-
-  PrintOnDisplay(sensorData);
-  Serial.println(sensorData);
-  // 300000 = 5min
-  //delay(600000);
-  // 120000 = 2min
-  delay(120000);
+  unsigned long currentTime = millis();
+  if ( currentTime >= timeLastMeasurement + delayTime)
+  {
+    timeLastMeasurement = millis();
+    SensorsData sensorsData;
+    sensorsData.Temperature = GetCurrentTemperature();
+    sensorsData.Humidity = GetCurrentHumidity();
+    sensorsData.LightIntensity = GetCurrentLightIntensity();
+  
+    sensorDataSum.Temperature = sensorDataSum.Temperature + sensorsData.Temperature;
+    sensorDataSum.Humidity = sensorDataSum.Humidity + sensorsData.Humidity;
+    sensorDataSum.LightIntensity = sensorDataSum.LightIntensity + sensorsData.LightIntensity;
+    numberOfMeasurements++;
+    Serial.println(numberOfMeasurements);
+  
+    String sensorData = String(String(millis()) + ", " + sensorsData.ToCsvString());
+    SaveDataOnSdCard(sensorData);
+  
+    PrintOnDisplay(sensorData);
+    Serial.println(sensorData);
+  }
 }
 
 void SetGlobalCarrierSettings()
@@ -150,11 +158,11 @@ bool LogIfFileExists()
 {
   if (SD.exists(filename))
   {
-    Serial.println("data.csv exists.");
+    //Serial.println("data.csv exists.");
     return true;
   } else
   {
-    Serial.println("data.csv doesn't exist.");
+    //Serial.println("data.csv doesn't exist.");
     return false;
   }
 }
